@@ -12,9 +12,9 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
 # https://hub.digi.com/support/products/infrastructure-management/digi-anywhereusb-2-plus/
 COPY awusbmanager-headless_1.2_amd64.deb /
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    busybox \
     ./awusbmanager-headless_1.2_amd64.deb \
-    && rm -rf /var/lib/apt/lists/* \
-
+    && rm -rf /var/lib/apt/lists/*
 
 # The build stage installs the context into the venv
 FROM developer AS build
