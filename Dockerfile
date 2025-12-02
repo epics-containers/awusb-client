@@ -7,15 +7,6 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
     graphviz \
     && apt-get dist-clean
 
-# Install the headless awusb manager.
-# The .deb is embeded in this repo because their website is not always up.
-# https://hub.digi.com/support/products/infrastructure-management/digi-anywhereusb-2-plus/
-COPY awusbmanager-headless_1.2_amd64.deb /
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    busybox \
-    ./awusbmanager-headless_1.2_amd64.deb \
-    && rm -rf /var/lib/apt/lists/*
-
 # The build stage installs the context into the venv
 FROM developer AS build
 
@@ -35,10 +26,15 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # The runtime stage copies the built venv into a runtime container
 FROM ubuntu:noble AS runtime
 
-# Add apt-get system dependecies for runtime here if needed
-# RUN apt-get update -y && apt-get install -y --no-install-recommends \
-#     some-library \
-#     && apt-get dist-clean
+# Install the headless awusb manager.
+# The .deb is embeded in this repo because their website is not always up.
+# https://hub.digi.com/support/products/infrastructure-management/digi-anywhereusb-2-plus/
+COPY awusbmanager-headless_1.2_amd64.deb /
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    busybox \
+    ./awusbmanager-headless_1.2_amd64.deb \
+    && rm -rf /var/lib/apt/lists/*
+# note: errors regarding usermod are benign when installing awusbmanager
 
 # Copy the python installation from the build stage
 COPY --from=build /python /python
