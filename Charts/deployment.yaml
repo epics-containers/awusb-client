@@ -49,3 +49,6 @@ spec:
           hostPath:
             path: /tmp/awusb_ipc
             type: Directory
+
+      nodeSelector:
+        kubernetes.io/hostname: b01-1-k8s-serv-01
