@@ -4,6 +4,7 @@ from argparse import ArgumentParser
 from collections.abc import Sequence
 
 from . import __version__
+from .query import get_devices
 
 __all__ = ["main"]
 
@@ -18,6 +19,11 @@ def main(args: Sequence[str] | None = None) -> None:
         version=__version__,
     )
     parser.parse_args(args)
+
+    get_devices_list = get_devices()
+    print("Local USB devices:")
+    for device in get_devices_list:
+        print(f" - {device}")
 
 
 if __name__ == "__main__":

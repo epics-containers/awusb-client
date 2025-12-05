@@ -5,6 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "awusb run",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "awusb_client"
+        },
+        {
             "name": "Debug Unit Test",
             "type": "debugpy",
             "request": "launch",
