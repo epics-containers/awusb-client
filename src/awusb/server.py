@@ -14,7 +14,7 @@ from .usbdevice import UsbDevice, get_devices
 
 
 class CommandServer:
-    def __init__(self, host: str = "localhost", port: int = 5000):
+    def __init__(self, host: str = "0.0.0.0", port: int = 5000):
         self.host = host
         self.port = port
         self.server_socket = None
