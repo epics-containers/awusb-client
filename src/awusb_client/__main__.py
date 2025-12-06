@@ -53,14 +53,42 @@ def list(
 ) -> None:
     """List the available USB devices from the server."""
     if local:
-        from .usbdevice import get_devices
-
         devices = get_devices()
     else:
         devices = list_devices()
 
     for device in devices:
         print(device)
+
+
+@app.command()
+def attach(
+    id: str | None = typer.Option(None, "--id", "-d", help="Device ID e.g. 0bda:5400"),
+    serial: str | None = typer.Option(
+        None, "--serial", "-s", help="Device serial number"
+    ),
+    desc: str | None = typer.Option(
+        None, "--desc", help="Device description substring"
+    ),
+    host: str | None = typer.Option(
+        None, "--host", "-H", help="Server hostname or IP address"
+    ),
+    first: bool = typer.Option(
+        False, "--first", "-f", help="Attach the first match if multiple found"
+    ),
+) -> None:
+    """Attach a USB device from the server."""
+    print(f"Attaching device with ID: {id}")
+    result = attach_device(
+        id=id,
+        server_host=host if host else "localhost",
+        server_port=5000,
+    )
+
+    if result.get("status") == "success":
+        typer.echo("OK")
+    else:
+        typer.echo(f"Failed to attach device: {result.get('message', 'Unknown error')}")
 
 
 def main(args: Sequence[str] | None = None) -> None:

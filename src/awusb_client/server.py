@@ -22,11 +22,11 @@ class CommandServer:
         self,
         id: str | None = None,
         bus: str | None = None,
-        serial_no: str | None = None,
+        serial: str | None = None,
     ) -> bool:
         """Handle the 'attach' command with optional arguments."""
         # TODO: Implement attach logic
-        print(f"Attaching device with id={id}, bus={bus}, serial_no={serial_no}")
+        print(f"Attaching device with id={id}, bus={bus}, serial={serial}")
         return True
 
     def _send_response(self, client_socket: socket.socket, response: dict):
@@ -55,8 +55,14 @@ class CommandServer:
                 self._send_response(client_socket, response)
 
             elif command == "attach":
-                print(f"Attach from : {address} [{command_data.get('args', {})}]")
-                kwargs = command_data.get("args", {})
+                print(f"Attach from : {address}")
+                kwargs = {
+                    "id": command_data.get("id"),
+                    "bus": command_data.get("bus"),
+                    "serial": command_data.get("serial"),
+                    "desc": command_data.get("desc"),
+                }
+                print(f"Attach args: {kwargs}")
                 result = self.handle_attach(**kwargs)
                 response = {"status": "success" if result else "failure"}
                 self._send_response(client_socket, response)
