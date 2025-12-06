@@ -1,8 +1,10 @@
 import json
 import socket
 
+from awusb_client.usbdevice import UsbDevice
 
-def list_devices(server_host="localhost", server_port=5000):
+
+def list_devices(server_host="localhost", server_port=5000) -> list[UsbDevice]:
     """
     Request list of available USB devices from the server.
 
@@ -11,7 +13,7 @@ def list_devices(server_host="localhost", server_port=5000):
         server_port: Server port number
 
     Returns:
-        List of dictionaries containing device information
+        List of dictionaries containing device informatio
     """
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.connect((server_host, server_port))

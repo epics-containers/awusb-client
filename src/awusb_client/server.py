@@ -2,6 +2,8 @@ import json
 import socket
 import threading
 
+from .usbdevice import UsbDevice, get_devices
+
 
 class CommandServer:
     def __init__(self, host: str = "localhost", port: int = 5000):
@@ -10,11 +12,11 @@ class CommandServer:
         self.server_socket = None
         self.running = False
 
-    def handle_list(self) -> str:
+    def handle_list(self) -> list[UsbDevice]:
         """Handle the 'list' command."""
         # TODO: Implement list logic
-        print("Listing devices")
-        return "List of devices"
+        result = get_devices()
+        return result
 
     def handle_attach(
         self,
@@ -31,7 +33,7 @@ class CommandServer:
         """Send a JSON response to the client."""
         client_socket.sendall(json.dumps(response).encode("utf-8") + b"\n")
 
-    def handle_client(self, client_socket: socket.socket, _address):
+    def handle_client(self, client_socket: socket.socket, address):
         """Handle individual client connections."""
 
         try:
@@ -46,10 +48,13 @@ class CommandServer:
             command = command_data["command"]
 
             if command == "list":
+                print(f"List from: {address}")
                 result = self.handle_list()
+                data = json.dumps(result)
                 response = {"status": "success", "data": result}
 
             elif command == "attach":
+                print(f"Attach from : {address} [{command_data.get('args', {})}]")
                 kwargs = command_data.get("args", {})
                 result = self.handle_attach(**kwargs)
                 response = {"status": "success" if result else "failure"}
