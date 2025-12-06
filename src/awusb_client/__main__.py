@@ -3,27 +3,63 @@
 from argparse import ArgumentParser
 from collections.abc import Sequence
 
+import typer
+
 from . import __version__
-from .usbdevice import get_devices
+from .client import attach_device, list_devices
+from .server import CommandServer
 
 __all__ = ["main"]
+
+app = typer.Typer()
+
+
+def version_callback(value: bool) -> None:
+    """Print version and exit."""
+    if value:
+        typer.echo(f"awusb-client {__version__}")
+        raise typer.Exit()
+
+
+@app.callback()
+def common_options(
+    version: bool = typer.Option(
+        False,
+        "--version",
+        callback=version_callback,
+        is_eager=True,
+        help="Show version and exit",
+    ),
+) -> None:
+    """Common options for all commands."""
+    pass
+
+
+@app.command()
+def server() -> None:
+    """Start the USB sharing server."""
+    server = CommandServer()
+    server.start()
+
+
+@app.command()
+def client(
+    action: str = typer.Argument(..., help="Action to perform: 'list' or 'attach'"),
+) -> None:
+    """Client commands for USB device management."""
+    if action == "list":
+        list_devices()
+    elif action == "attach":
+        attach_device("hello")
+        print("attach called")
+    else:
+        typer.echo(f"Unknown action: {action}. Use 'list' or 'attach'.")
+        raise typer.Exit(1)
 
 
 def main(args: Sequence[str] | None = None) -> None:
     """Argument parser for the CLI."""
-    parser = ArgumentParser()
-    parser.add_argument(
-        "-v",
-        "--version",
-        action="version",
-        version=__version__,
-    )
-    parser.parse_args(args)
-
-    get_devices_list = get_devices()
-    print("Local shareable USB devices:")
-    for device in get_devices_list:
-        print(f"- {device}")
+    app()
 
 
 if __name__ == "__main__":
