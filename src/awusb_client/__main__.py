@@ -23,7 +23,7 @@ def main(args: Sequence[str] | None = None) -> None:
     get_devices_list = get_devices()
     print("Local USB devices:")
     for device in get_devices_list:
-        print(f" - {device}")
+        print(f"- {device}\n  {device.details}")
 
 
 if __name__ == "__main__":
