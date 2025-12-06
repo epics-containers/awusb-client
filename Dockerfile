@@ -2,21 +2,8 @@
 # or docker with user namespaces.
 FROM ghcr.io/diamondlightsource/ubuntu-devcontainer:noble AS developer
 
-# Add any system dependencies for the developer/build environment here
-RUN apt-get update -y && apt-get install -y --no-install-recommends \
-    graphviz \
-    && apt-get dist-clean
-
-# Install the headless awusb manager.
-# The .deb is embeded in this repo because their website is not always up.
-# https://hub.digi.com/support/products/infrastructure-management/digi-anywhereusb-2-plus/
-COPY --link awusbmanager-headless_1.2_amd64.deb /
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ./awusbmanager-headless_1.2_amd64.deb \
-    && rm -rf /var/lib/apt/lists/* \
-
-
 # The build stage installs the context into the venv
+################################################################################
 FROM developer AS build
 
 # Change the working directory to the `app` directory
@@ -33,12 +20,29 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-editable --no-dev
 
 # The runtime stage copies the built venv into a runtime container
+################################################################################
 FROM ubuntu:noble AS runtime
 
-# Add apt-get system dependecies for runtime here if needed
-# RUN apt-get update -y && apt-get install -y --no-install-recommends \
-#     some-library \
-#     && apt-get dist-clean
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    sudo \
+    busybox \
+    usbutils \
+    && rm -rf /var/lib/apt/lists/* \
+    && busybox --install -s
+
+# awusbmanager should be installed by a not-root user with sudo privileges.
+RUN echo "ubuntu ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+USER ubuntu
+
+# Install the headless awusb manager from
+# https://hub.digi.com/support/products/infrastructure-management/digi-anywhereusb-2-plus/
+COPY awusbmanager-headless_1.2_amd64.deb /
+RUN sudo apt-get update && sudo apt-get install -y --no-install-recommends \
+    ./awusbmanager-headless_1.2_amd64.deb \
+    && sudo rm -rf /var/lib/apt/lists/*
+
+# remove sudo rights again
+RUN sudo sed -i '/^ubuntu ALL=(ALL) NOPASSWD: ALL$/d' /etc/sudoers
 
 # Copy the python installation from the build stage
 COPY --from=build /python /python
@@ -47,6 +51,7 @@ COPY --from=build /python /python
 COPY --from=build /app/.venv /app/.venv
 ENV PATH=/app/.venv/bin:$PATH
 
-# change this entrypoint if it is not the same as the repo
-ENTRYPOINT ["awusb-client"]
-CMD ["--version"]
+# use root for local rootless containers in podman
+# this should be run as uid 1000 in cluster
+USER root
+ENTRYPOINT ["bash"]
