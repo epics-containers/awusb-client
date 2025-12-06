@@ -6,6 +6,7 @@ import typer
 
 from . import __version__
 from .client import attach_device, list_devices
+from .models import AttachRequest
 from .server import CommandServer
 from .usbdevice import get_devices
 
@@ -73,22 +74,28 @@ def attach(
     host: str | None = typer.Option(
         None, "--host", "-H", help="Server hostname or IP address"
     ),
+    bus: str | None = typer.Option(
+        None, "--bus", "-b", help="Device bus ID e.g. 1-2.3.4"
+    ),
     first: bool = typer.Option(
         False, "--first", "-f", help="Attach the first match if multiple found"
     ),
 ) -> None:
     """Attach a USB device from the server."""
-    print(f"Attaching device with ID: {id}")
-    result = attach_device(
+    args = AttachRequest(
         id=id,
+        bus=bus,
+        serial=serial,
+        desc=desc,
+    )
+    result = attach_device(
+        args=args,
         server_host=host if host else "localhost",
         server_port=5000,
     )
 
-    if result.get("status") == "success":
+    if result:
         typer.echo("OK")
-    else:
-        typer.echo(f"Failed to attach device: {result.get('message', 'Unknown error')}")
 
 
 def main(args: Sequence[str] | None = None) -> None:

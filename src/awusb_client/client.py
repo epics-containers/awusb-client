@@ -1,14 +1,24 @@
-import json
 import socket
 
+from pydantic import TypeAdapter
+
+from awusb_client.models import (
+    AttachRequest,
+    AttachResponse,
+    ErrorResponse,
+    ListRequest,
+    ListResponse,
+)
 from awusb_client.usbdevice import UsbDevice
 
 
 def send_request(sock, request):
-    sock.sendall(json.dumps(request).encode("utf-8"))
+    sock.sendall(request.model_dump_json().encode("utf-8"))
 
     response = sock.recv(4096).decode("utf-8")
-    decoded = json.loads(response)
+    # Parse response using TypeAdapter to handle union types
+    response_adapter = TypeAdapter(ListResponse | AttachResponse | ErrorResponse)
+    decoded = response_adapter.validate_json(response)
 
     return decoded
 
@@ -27,29 +37,36 @@ def list_devices(server_host="localhost", server_port=5000) -> list[UsbDevice]:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.connect((server_host, server_port))
 
-        request = {"command": "list"}
+        request = ListRequest()
         response = send_request(sock, request)
 
-        return [UsbDevice.model_validate(device) for device in response.get("data", [])]
+        if isinstance(response, ErrorResponse):
+            raise RuntimeError(f"Server error: {response.message}")
+
+        return response.data
 
 
-def attach_device(id, server_host="localhost", server_port=5000):
+def attach_device(
+    args: AttachRequest, server_host="localhost", server_port=5000
+) -> bool:
     """
     Request to attach a USB device from the server.
 
     Args:
-        device_id: ID of the device to attach
+        id: ID of the device to attach
         server_host: Server hostname or IP address
         server_port: Server port number
 
     Returns:
-        Dictionary containing the result of the attach operation
+        True if successful, False otherwise
     """
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.connect((server_host, server_port))
 
-        request = {"command": "attach", "id": id}
-        print(f"Request: {request}")
-        response = send_request(sock, request)
+        print(f"Request: {args}")
+        response = send_request(sock, args)
 
-        return response
+        if isinstance(response, ErrorResponse):
+            raise RuntimeError(f"Server error: {response.message}")
+
+        return response.status == "success"

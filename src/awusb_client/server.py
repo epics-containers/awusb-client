@@ -1,7 +1,15 @@
-import json
 import socket
 import threading
 
+from pydantic import TypeAdapter, ValidationError
+
+from .models import (
+    AttachRequest,
+    AttachResponse,
+    ErrorResponse,
+    ListRequest,
+    ListResponse,
+)
 from .usbdevice import UsbDevice, get_devices
 
 
@@ -20,63 +28,59 @@ class CommandServer:
 
     def handle_attach(
         self,
-        id: str | None = None,
-        bus: str | None = None,
-        serial: str | None = None,
+        args: AttachRequest,
     ) -> bool:
         """Handle the 'attach' command with optional arguments."""
         # TODO: Implement attach logic
-        print(f"Attaching device with id={id}, bus={bus}, serial={serial}")
+
         return True
 
-    def _send_response(self, client_socket: socket.socket, response: dict):
+    def _send_response(
+        self,
+        client_socket: socket.socket,
+        response: ListResponse | AttachResponse | ErrorResponse,
+    ):
         """Send a JSON response to the client."""
-        client_socket.sendall(json.dumps(response).encode("utf-8") + b"\n")
+        client_socket.sendall(response.model_dump_json().encode("utf-8") + b"\n")
 
     def handle_client(self, client_socket: socket.socket, address):
         """Handle individual client connections."""
 
         try:
             data = client_socket.recv(1024).decode("utf-8")
-            command_data = json.loads(data)
 
-            if not command_data or "command" not in command_data:
-                response = {"status": "error", "message": "Empty or invalid command"}
+            if not data:
+                response = ErrorResponse(
+                    status="error", message="Empty or invalid command"
+                )
                 self._send_response(client_socket, response)
                 return
 
-            command = command_data["command"]
+            # Try to parse as either ListRequest or AttachRequest
+            request_adapter = TypeAdapter(ListRequest | AttachRequest)
+            try:
+                request = request_adapter.validate_json(data)
+            except ValidationError as e:
+                response = ErrorResponse(
+                    status="error", message=f"Invalid request format: {str(e)}"
+                )
+                self._send_response(client_socket, response)
+                return
 
-            if command == "list":
+            if isinstance(request, ListRequest):
                 print(f"List from: {address}")
                 result = self.handle_list()
-                data = [device.model_dump() for device in result]
-                response = {"status": "success", "data": data}
+                response = ListResponse(status="success", data=result)
                 self._send_response(client_socket, response)
 
-            elif command == "attach":
-                print(f"Attach from : {address}")
-                kwargs = {
-                    "id": command_data.get("id"),
-                    "bus": command_data.get("bus"),
-                    "serial": command_data.get("serial"),
-                    "desc": command_data.get("desc"),
-                }
-                print(f"Attach args: {kwargs}")
-                result = self.handle_attach(**kwargs)
-                response = {"status": "success" if result else "failure"}
+            elif isinstance(request, AttachRequest):
+                print(f"Attach from : {address}, args: {request}")
+                result = self.handle_attach(args=request)
+                response = AttachResponse(status="success" if result else "failure")
                 self._send_response(client_socket, response)
-
-            else:
-                response = {"status": "error", "message": "Unknown command"}
-                self._send_response(client_socket, response)
-
-        except json.JSONDecodeError as e:
-            response = {"status": "error", "message": f"Invalid JSON: {str(e)}"}
-            self._send_response(client_socket, response)
 
         except Exception as e:
-            response = {"status": "error", "message": str(e)}
+            response = ErrorResponse(status="error", message=str(e))
             self._send_response(client_socket, response)
 
         finally:
