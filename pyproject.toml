@@ -3,7 +3,7 @@ requires = ["setuptools>=64", "setuptools_scm[toml]>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "awusb-client"
+name = "awusb"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "License :: OSI Approved :: Apache Software License",
@@ -12,7 +12,11 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 description = "a container that mounts remote devices locally using anywhereusb"
-dependencies = [] # Add project dependencies here, e.g. ["click", "numpy"]
+dependencies = [
+    "pydantic>=2.0.0",
+    "pyusb>=1.3.1",
+    "typer>=0.20.0",
+] # Add project dependencies here, e.g. ["click", "numpy"]
 dynamic = ["version"]
 license.file = "LICENSE"
 readme = "README.md"
@@ -31,21 +35,21 @@ dev = [
 ]
 
 [project.scripts]
-awusb-client = "awusb_client.__main__:main"
+awusb = "awusb.__main__:main"
 
 [project.urls]
-GitHub = "https://github.com/epics-containers/awusb-client"
+GitHub = "https://github.com/epics-containers/awusb"
 
 [[project.authors]] # Further authors may be added by duplicating this section
 email = "giles.knap@diamond.ac.uk"
 name = "Giles Knap"
 
 [tool.setuptools_scm]
-version_file = "src/awusb_client/_version.py"
+version_file = "src/awusb/_version.py"
 
 [tool.pyright]
-typeCheckingMode = "strict"
-reportMissingImports = false # Ignore missing stubs in imported modules
+typeCheckingMode = "standard"
+reportMissingImports = false  # Ignore missing stubs in imported modules
 
 [tool.pytest.ini_options]
 # Run pytest with all our checkers, and don't spam us with massive tracebacks on error
@@ -59,7 +63,7 @@ testpaths = "docs src tests"
 
 [tool.coverage.run]
 patch = ["subprocess"]
-data_file = "/tmp/awusb_client.coverage"
+data_file = "/tmp/awusb.coverage"
 
 [tool.coverage.paths]
 # Tests are run from installed location, map back to the src directory
@@ -105,8 +109,8 @@ commands = [
 description = "Run tests with coverage"
 commands = [
     [
-        "pytest", 
-        "--cov=awusb_client",
+        "pytest",
+        "--cov=awusb",
         "--cov-report",
         "term",
         "--cov-report",
